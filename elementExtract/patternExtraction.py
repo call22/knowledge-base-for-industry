@@ -55,6 +55,17 @@ class PatternExtraction:
 
     '''编译模式'''
 
+    def create_pattern1(self, wds):
+        patterns = []
+        for wd in wds:
+            pre = wd[0]
+            pos = wd[1]
+            # *? 非贪婪匹配
+            pattern = re.compile(
+                '({0})([^？?！!。；;：:\n\r, ，]{{4,}})({1})([^,，]{{2,}})'.format('|'.join(pre), '|'.join(pos)))
+            patterns.append(pattern)
+        return patterns
+
     def create_pattern2(self, wds):
         patterns = []
         for wd in wds:
@@ -67,8 +78,32 @@ class PatternExtraction:
 
     '''模式匹配'''
 
+    def pattern_match_comma(self, patterns: list, sent):
+        for i, p in enumerate(patterns):
+            res = p.split(sent)
+            sent = ""
+            for j, fragment in enumerate(res):
+                if j % 5 == 3 or j % 5 == 0:
+                    sent = sent + '，'
+                sent += fragment
+            sent = re.sub('，+', '，', sent)  # 去除冗余逗号
+            if len(res) > 1:  # 每种模式只匹配一次
+                return sent
+        return sent
+
+    def add_comma(self, sent):
+        self.causality_patterns1 = self.create_pattern1(self.causality_wds)
+        self.but_patterns1 = self.create_pattern1(self.but_wds)
+        self.seq_patterns1 = self.create_pattern1(self.seq_wds)
+        self.condition_patterns1 = self.create_pattern1(self.condition_wds)
+
+        sent = self.pattern_match_comma(self.causality_patterns1, sent)
+        sent = self.pattern_match_comma(self.but_patterns1, sent)
+        sent = self.pattern_match_comma(self.condition_patterns1, sent)
+        sent = self.pattern_match_comma(self.seq_patterns1, sent)
+        return sent
+
     def pattern_match_Rel(self, patterns: list, sent, wds, type):
-        # 返回关联词所在位置
         result = []
         for i, p in enumerate(patterns):
             res = p.split(sent)
@@ -98,7 +133,6 @@ class PatternExtraction:
                             q += len(k)
                         result.append([type, p+1, q+1])
                         pre = -1
-
         return result
 
     def add_relation(self, sent):

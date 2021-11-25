@@ -23,8 +23,6 @@ class RuleExtract:
         :return: 规则列表
         """
         rules = []
-        # p = PatternExtraction()
-        # rules.extend(p.add_relation(self.text))
         must_wds = ['应该', '必须', '应']
         ban_wds = ['不应', '严禁', '禁止', '不得', '不能']
         if_wds = [[['如果'], ['则']],
