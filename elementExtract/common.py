@@ -9,11 +9,12 @@ class HpWord:
         self.postag = postag
         self.head = head
         self.span = span
-        # self.flag = True
+        self.tag = []   # 标记
         self.child = []
 
     def __repr__(self):
-        return f'<id::{self.id}, text::{self.text}, rel::{self.rel}, postag::{self.postag}, head::{self.head}, span::{self.span}, child::{self.child}> '
+        return f'<id::{self.id}, text::{self.text}, tag::{self.tag}, rel::{self.rel}, postag::{self.postag}, head::{self.head}, span::{self.span}, child::{self.child}> '
+        # return f'<id::{self.id}, text::{self.text}, tag::{self.tag}, head::{self.head}> '
 
 
 class HpSent:

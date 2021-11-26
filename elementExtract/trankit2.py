@@ -4,10 +4,16 @@ from patternExtraction import PatternExtraction
 import re
 
 '''中文复句整理及模板'''
+# 拆分句子为 主语、宾语、从句、补句
 clause_complement = ['ccomp', 'xcomp']
 Clauses = ['csubj', 'csubj:pass', 'advcl', 'parataxis', 'conj', 'ccomp', 'xcomp', 'cc']
 Objects = ['obj', 'nsubj:pass', 'iobj', 'obl', 'obl:patient']
 Subjects = ['nsubj', 'obl:agent', 'vocative', 'dislocated', 'dislocated:vo']
+
+# 拆分句子为 实体、操作、关联关系
+Entity = ['compound']
+Relation = []
+Operation = []
 
 
 # input sentences, output Result
