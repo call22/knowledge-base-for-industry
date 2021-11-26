@@ -1,7 +1,6 @@
 from trankit import Pipeline
-from xml.etree import ElementTree as etree
-from xml.dom import minidom as minidom
-from common import HpWord
+from elementExtract.common import HpWord
+import json
 
 clause_complement = ['ccomp', 'xcomp']
 Clauses = ['csubj', 'csubj:pass', 'advcl', 'parataxis', 'conj', 'ccomp', 'xcomp', 'cc']
@@ -24,11 +23,20 @@ class RuleExtract1:
         self.time = []
         self.locations = []
         self.conditions = []
-        self.xml = etree.Element('rule')
 
     def setSent(self, sentence):
         self.sent = sentence
         self.sentences = self.p.posdep(sentence)['sentences']
+        self.words = []
+        self.root = None
+        self.entities = []
+        self.subjects = []
+        self.objects = []
+        self.requirements = []
+        self.bans = []
+        self.time = []
+        self.locations = []
+        self.conditions = []
 
     def parser(self):
         self.words = self._setWords(self.sentences)
@@ -156,7 +164,7 @@ class RuleExtract1:
         :return:
         """
         child_set = root.child.copy()
-        sorted(child_set)
+        child_set = sorted(child_set)
         for child_id in child_set:
             self._extractTag(self.words[child_id])
 
@@ -166,16 +174,16 @@ class RuleExtract1:
 
         # 合并两个child，成功True，失败False
         def _combine_child(c1, c2):
-            child = self.words[c2]
-            if c1 != -1 and self.words[c1].span[1] == child.span[0]:
+            _child = self.words[c2]
+            if c1 != -1 and self.words[c1].span[1] == _child.span[0]:
                 last_child = self.words[c1]
-                child.text = last_child.text + child.text
-                child.span = (last_child.span[0], child.span[1])
-                child.child.extend(last_child.child)
+                _child.text = last_child.text + _child.text
+                _child.span = (last_child.span[0], _child.span[1])
+                _child.child.extend(last_child.child)
                 for _i in last_child.child:
-                    self.words[_i].head = child.id
+                    self.words[_i].head = _child.id
 
-                _w = self.words[child.head]
+                _w = self.words[_child.head]
                 _w.child.remove(c1)
                 last_child.head = -2
                 return True
@@ -183,32 +191,32 @@ class RuleExtract1:
 
         # 将child合并到root中，成功True，失败False
         def _combine_root(c, r):
-            child = self.words[c]
+            _child = self.words[c]
             _w = self.words[r]
-            if child.span[0] == _w.span[1] or child.span[1] == _w.span[0]:
-                if child.span[0] == _w.span[1]:
-                    _w.text = _w.text + child.text
-                    _w.span = (_w.span[0], child.span[1])
-                elif child.span[1] == _w.span[0]:
-                    _w.text = child.text + _w.text
-                    _w.span = (child.span[0], _w.span[1])
-                _w.child.extend(child.child)
-                for _i in child.child:
+            if _child.span[0] == _w.span[1] or _child.span[1] == _w.span[0]:
+                if _child.span[0] == _w.span[1]:
+                    _w.text = _w.text + _child.text
+                    _w.span = (_w.span[0], _child.span[1])
+                elif _child.span[1] == _w.span[0]:
+                    _w.text = _child.text + _w.text
+                    _w.span = (_child.span[0], _w.span[1])
+                _w.child.extend(_child.child)
+                for _i in _child.child:
                     self.words[_i].head = _w.id
-                _w.child.remove(child.id)
-                child.head = -2
+                _w.child.remove(_child.id)
+                _child.head = -2
                 return True
             return False
 
         # 合并rel不满足条件的节点
         def _combine_neg(w, _relations):  # 合并不在_relations中的关联
             last_id = -1
-            sorted(w.child)
+            w.child = sorted(w.child)
             _children = w.child.copy()
             for _id in _children:
-                child = self.words[_id]
-                _combine_neg(child, _relations)
-                if child.rel not in _relations:
+                _child = self.words[_id]
+                _combine_neg(_child, _relations)
+                if _child.rel not in _relations:
                     # combine children
                     _combine_child(last_id, _id)
                     last_id = _id
@@ -220,12 +228,12 @@ class RuleExtract1:
         # 合并rel满足条件的节点
         def _combine_cond(w, _relations):
             last_id = -1
-            sorted(w.child)
+            w.child = sorted(w.child)
             _children = w.child.copy()
             for _id in _children:
-                child = self.words[_id]
-                _combine_cond(child, _relations)
-                if child.rel in _relations:
+                _child = self.words[_id]
+                _combine_cond(_child, _relations)
+                if _child.rel in _relations:
                     # combine children
                     _combine_child(last_id, _id)
                     last_id = _id
@@ -246,10 +254,10 @@ class RuleExtract1:
             root.tag = list(set(root.tag))
 
             def _find_rel(w):  # OR与AND关系
-                for i in w.child:  # TODO: 与或关系还要细化
-                    if self.words[i].text in ['和', '与', '同', '且']:
+                for _i in w.child:  # TODO: 与或关系还要细化
+                    if self.words[_i].text in ['和', '与', '同', '且']:
                         return ['AND']
-                    if self.words[i].text in ['、', '或', '或者', '及', '以及']:
+                    if self.words[_i].text in ['、', '或', '或者', '及', '以及']:
                         return ['OR']
                 return []
 
@@ -277,42 +285,61 @@ class RuleExtract1:
             _combine_cond(root, Modificatons)
             self.locations.append(root.span)
 
-        # 7. condition 记录 #TODO: 先直接combine
+        # 返回w子树的所有word span
+        def _span_text(w):
+            _list = []
+            for _id in w.child:
+                _list.extend(_span_text(self.words[_id]))
+            _list.append(w.span)
+            return _list
+        # 7. condition，ban，require 记录 ;不合并节点，只收集span
+        if len({'condition', 'ban', 'require'}.intersection(set(root.tag))) == 1:
+            # 不合并subject,condition,ban,require
+            span_list = []
+            for child_id in root.child:
+                child = self.words[child_id]
+                if len({'subject', 'condition', 'ban', 'require'}.intersection(set(child.tag))) == 0:
+                    span_list.extend(_span_text(child))
+            span_list.append(root.span)
+
+            span_list = sorted(span_list, key=lambda x: x[0])
+            new_list = [(-1, -1)]
+            for span_idx in range(len(span_list)):
+                if new_list[-1][1] == span_list[span_idx][0]:
+                    new_list[-1] = (new_list[-1][0], span_list[span_idx][1])
+                else:
+                    new_list.append(span_list[span_idx])
+            new_list.pop(0)
+
+            for span_idx in range(len(new_list)):
+                if new_list[span_idx][0] <= root.span[0] and root.span[1] <= new_list[span_idx][1]:
+                    if 'condition' in root.tag:
+                        self.conditions.append(new_list[span_idx])
+                    elif 'ban' in root.tag:
+                        self.bans.append(new_list[span_idx])
+                    elif 'require' in root.tag:
+                        self.requirements.append(new_list[span_idx])
+                    break
+
+    def genViewVer(self):
+        """
+        将condition、ban、require直接转为文字
+        :return: str
+        """
+        return [{
+            'subject': self.subjects,
+            'object': self.objects,
+            'entity': self.entities,
+            'condition': self.conditions,
+            'ban': self.bans,
+            'require': self.requirements
+        }]
+
+    def genAppVer(self):
         # 8. ban 记录 #TODO: atom:<entity>,<verb>; relation:<AND>, <OR>, <MOD>;
         #  TODO: attribute:<condition>, <subject>, <object>, <ban>, <require>, <time>, <location>,
         #  TODO: <set>: 集合，无其他含义，与relation一同出现
-
-    def _genXML(self, root, x_root):
-        """
-        语法树转为xml形式，自顶向下，先序遍历
-        :param root: 语法树根节点
-        :param x_root: xml根节点
-        :return:
-        """
-        # atom
-        if 'entity' in root.tag:
-            entity = etree.SubElement(x_root, 'entity')
-            entity.text = root.text
-        elif 'time' in root.tag:
-            time = etree.SubElement(x_root, 'time')
-            time.text = root.text
-        elif 'location' in root.tag:
-            location = etree.SubElement(x_root, 'location')
-            location.text = root.text
-
-        # combination
-        elif 'subject' in root.tag:
-            subject = etree.SubElement(x_root, 'subject')
-        elif 'object' in root.tag:
-            object = etree.SubElement(x_root, 'object')
-        elif 'condition' in root.tag:
-            condition = etree.SubElement(x_root, 'condition')
-        elif 'ban' in root.tag:
-            ban = etree.SubElement(x_root, 'ban')
-        elif 'require' in root.tag:
-            require = etree.SubElement(x_root, 'require')
-        elif len(root.tag) == 0:
-            pass
+        return []
 
 
 if __name__ == '__main__':
@@ -321,4 +348,14 @@ if __name__ == '__main__':
     # s = '当管道采用管沟方式敷设时，管沟与泵房、灌桶间、罐组防火堤、覆土油罐室的结合处，不应设置密闭隔离墙。'
     ruleExt.setSent(s)
     ruleExt.parser()
-    print(ruleExt)
+    view_json = ruleExt.genViewVer()
+    print(s)
+    print('='*30)
+    for key in view_json.keys():
+        print(str(key) + ':')
+        v_text = ''
+        for item in view_json[key]:
+            v_text += s[item[0]:item[1]] + ' | '
+        print(v_text)
+    print('='*30)
+    # print(ruleExt)
