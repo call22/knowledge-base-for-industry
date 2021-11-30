@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<root>
+    <require>
+        <subject>
+            <OR>
+                <subject>
+                    <mod>
+                        <entity>高速轴</entity>
+                    </mod>
+                    <entity>联轴器</entity>
+                </subject>
+                <subject>
+                    <mod>
+                        <entity>低速轴</entity>
+                    </mod>
+                    <entity>联轴器</entity>
+                </subject>
+                <subject>
+                    <entity>制动轮</entity>
+                </subject>
+                <subject>
+                    <entity>制动盘</entity>
+                </subject>
+                <subject>
+                    <mod>液力</mod>
+                    <entity>偶合器</entity>
+                </subject>
+            </OR>
+        </subject>
+        <verb>加装</verb>
+        <object>驱动装置</object>
+    </require>
+    <require>
+        <condition>
+            <subject>驱动装置</subject>
+            <AND>
+                <verb>设置在</verb>
+                <object>
+
+                </object>
+            </AND>
+
+        </condition>
+    </require>
+</root>
