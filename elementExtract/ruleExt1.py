@@ -298,7 +298,8 @@ class RuleExtract1:
             span_list = []
             for child_id in root.child:
                 child = self.words[child_id]
-                if len({'subject', 'condition', 'ban', 'require'}.intersection(set(child.tag))) == 0:
+                if len({'subject', 'condition', 'ban', 'require'}.intersection(set(child.tag))) == 0 \
+                        and child.rel not in ['root']:  # 防止head-1时，连接多个句子
                     span_list.extend(_span_text(child))
             span_list.append(root.span)
 
@@ -346,9 +347,10 @@ if __name__ == '__main__':
     ruleExt = RuleExtract1()
     s = "高速轴联轴器、低速轴联轴器、制动轮、制动盘及液力偶合器都应加装防护罩。当驱动装置设置在地面或人员能接近的平台上且带速大于3.15m/s时，整个驱动装置范围应采用高度不低于1500mm的护栏予以防护。"
     # s = '当管道采用管沟方式敷设时，管沟与泵房、灌桶间、罐组防火堤、覆土油罐室的结合处，不应设置密闭隔离墙。'
+    s = '封闭空间内在未进行良好的通风之前禁止人员进入。如要进入，必须佩戴合适的供气呼吸设备并由戴有类似设备的他人监护。必要时在进入之前，对封闭空间要进行毒气、可燃气、有害气、氧量等的测试，确认无害后方可进入。'
     ruleExt.setSent(s)
     ruleExt.parser()
-    view_json = ruleExt.genViewVer()
+    view_json = ruleExt.genViewVer()[0]
     print(s)
     print('='*30)
     for key in view_json.keys():
