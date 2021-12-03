@@ -29,7 +29,7 @@ def get_json_from_doc(filename, output="data.json"):
     rows = table.rows
     assert len(rows)
     names = rows[0].cells
-    out = open(output, 'w')
+    out = open(output, 'w', encoding='utf-8')
     results = []
     for i, row in enumerate(tqdm(rows)):
         if i == 0:
@@ -40,7 +40,7 @@ def get_json_from_doc(filename, output="data.json"):
         if item.get("序号", None):
             item["序号"] = i
         results.append(item)
-    json.dump(results, out, ensure_ascii=True, indent=4)
+    json.dump(results, out, ensure_ascii=False, indent=2)
 
 
 def table2json(input_path):
@@ -198,9 +198,10 @@ def arg_parser():
 
 
 def main(args):
-    output_json = "data/data.json"
-    if not os.path.exists("data"):
-        os.makedirs("data")
+    _output_dir = "output"
+    output_json = os.path.join(_output_dir, "data.json")
+    if not os.path.exists(_output_dir):
+        os.makedirs(_output_dir)
     # 第一步： 从doc到json文件——doc处理速度很慢，json读取较快
     if args.doc2json:
         print("start get_json_from_doc ...")
@@ -216,16 +217,17 @@ def main(args):
     # 第四步；从content中抽取出对应内容
     if args.extract:
         print("start extract ...")
-        extract_rule_data('data/data.json', 'data/rule.json')
+        output_rule = os.path.join(_output_dir, "rule.json")
+        extract_rule_data(output_json, output_rule)
 
 
 if __name__ == '__main__':
-    # main(arg_parser())
+    main(arg_parser())
     # pass
     # table2json('data/law/安全生产法律法规列表.xlsx')
     # table2json('data/law/2020最新安全生产法律法规清单.docx')
     # table2json('data/law/安全法规列表-2.docx')
-    clear_json('data/law/安全生产法律法规列表.json')
-    clear_json('data/law/安全法规列表-2.json')
-    clear_json('data/law/2020最新安全生产法律法规清单.json')
+    # clear_json('output/安全生产法律法规列表.json')
+    # clear_json('output/安全法规列表-2.json')
+    # clear_json('output/2020最新安全生产法律法规清单.json')
     # clearJson('data/data.json')
